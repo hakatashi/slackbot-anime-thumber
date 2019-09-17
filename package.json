@@ -17,5 +17,12 @@
   "bugs": {
     "url": "https://github.com/hakatashi/slackbot-anime-thumber/issues"
   },
-  "homepage": "https://github.com/hakatashi/slackbot-anime-thumber#readme"
+  "homepage": "https://github.com/hakatashi/slackbot-anime-thumber#readme",
+  "dependencies": {
+    "aws-sdk": "^2.528.0",
+    "fs-extra": "^8.1.0",
+    "klaw": "^3.0.0",
+    "p-queue": "^6.1.1",
+    "rembrandt": "^0.1.3"
+  }
 }
