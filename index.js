@@ -1,8 +1,6 @@
-const Rembrandt = require('rembrandt');
 const klaw = require('klaw');
 const path = require('path');
 const {spawn} = require('child_process');
-const {promisify} = require('util');
 const {default: Queue} = require('p-queue');
 const fs = require('fs-extra');
 
@@ -64,17 +62,4 @@ const fs = require('fs-extra');
 			await fs.writeJson('files.json', files);
 		}
 	});
-
-	const rembrandt = new Rembrandt({
-		imageA: 'png/thumb585.png',
-		imageB: 'png/thumb582.png',
-		thresholdType: Rembrandt.THRESHOLD_PERCENT,
-		maxThreshold: 0.05,
-		maxDelta: 20 / 255,
-		maxOffset: 2,
-		renderComposition: false,
-	});
-
-	const result = await rembrandt.compare();
-	console.log(result);
 })();

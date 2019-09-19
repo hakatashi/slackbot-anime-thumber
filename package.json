@@ -20,9 +20,11 @@
   "homepage": "https://github.com/hakatashi/slackbot-anime-thumber#readme",
   "dependencies": {
     "aws-sdk": "^2.528.0",
+    "concat-stream": "^2.0.0",
     "fs-extra": "^8.1.0",
     "klaw": "^3.0.0",
     "p-queue": "^6.1.1",
+    "ramda": "^0.26.1",
     "rembrandt": "^0.1.3"
   }
 }
