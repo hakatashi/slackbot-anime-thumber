@@ -5,37 +5,30 @@ const {default: Queue} = require('p-queue');
 const fs = require('fs-extra');
 
 (async () => {
-	const files = await fs.readJson('lives.json').catch(() => []);
+	const files = await fs.readJson('youtube.json').catch(() => []);
 
 	const queue = new Queue({concurrency: 1});
 
-	const walker = klaw('Z:\\kakorokuRecorder\\video\\channel');
+	const walker = klaw('C:\\Users\\denjj\\Videos\\animes');
 	walker.on('data', async (item) => {
 		if (!item.stats.isDirectory()) {
-			const liveId = item.path.match(/lv\d{8,}/)[0];
 			const ext = path.extname(item.path);
 			const basename = path.basename(item.path, ext);
-			const partMatches = basename.match(/(\d+)$/);
-			const part = partMatches ? partMatches[1] : '0';
-			const channelName = item.path.split(path.sep).slice(-2)[0];
+			const videoId = basename.match(/-(.{11})$/)[1];
 
-			if (ext !== '.flv') {
-				return;
-			}
-
-			if (files.some((file) => file.liveId === liveId && file.part === part)) {
-				console.log('skipping...', {liveId, ext, part, channelName});
+			if (files.some((file) => file.videoId === videoId)) {
+				console.log('skipping...', {videoId});
 				return;
 			}
 
 			await queue.add(async () => {
-				console.log('proccessing...', {liveId, ext, part, channelName});
-				await fs.mkdirp(`raw-thumbs/lives/${liveId}-${part}`);
+				console.log('proccessing...', {videoId});
+				await fs.mkdirp(`raw-thumbs/youtube/${videoId}`);
 
 				const args = [
 					'-i', item.path,
 					'-vf', 'fps=1/30,scale=-1:240',
-					`raw-thumbs/lives/${liveId}-${part}/%04d.png`,
+					`raw-thumbs/youtube/${videoId}/%04d.png`,
 					'-y',
 				];
 
@@ -58,8 +51,8 @@ const fs = require('fs-extra');
 				});
 			});
 
-			files.push({liveId, ext, part, channelName, path: item.path});
-			await fs.writeJson('lives.json', files);
+			files.push({videoId, ext, path: item.path});
+			await fs.writeJson('youtube.json', files);
 		}
 	});
 })();

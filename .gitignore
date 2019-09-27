@@ -64,5 +64,7 @@ jpg
 png
 webp
 raw-thumbs
-files.json
+lives.json
+lives.tsv
 webps.json
+youtube.json

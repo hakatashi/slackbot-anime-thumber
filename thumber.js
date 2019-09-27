@@ -35,49 +35,54 @@ const exec = async (command, args) => {
 	return stdout;
 };
 
-const generateThumbs = (liveId) => {
+const generateThumbs = (videoPath, eliminate = true) => {
 	queue.add(async () => {
 		const webps = await fs.readJson('webps.json').catch(() => []);
-		if (webps.includes(liveId)) {
+		
+		const [type, id] = videoPath.split('/');
+		if (webps.includes(videoPath)) {
+			console.log(`Skipping ${videoPath}...`);
 			return;
 		}
 
-		console.log(`Genarating thumbs for ${liveId}...`);
-		const dirs = await fs.readdir('raw-thumbs');
+		console.log(`Genarating thumbs for ${videoPath}...`);
+		const dirs = await fs.readdir(`raw-thumbs/${type}`);
 		dirs.sort();
-		const liveDirs = dirs.filter((dir) => dir.startsWith(liveId));
+		const liveDirs = dirs.filter((dir) => dir.startsWith(id));
 
 		let offset = 0;
 
 		for (const dir of liveDirs) {
 			const blacklist = new Set();
-			const itemPath = path.resolve('raw-thumbs', dir);
+			const itemPath = path.resolve('raw-thumbs/lives', dir);
 			const files = await fs.readdir(itemPath);
 			files.sort();
 
-			for (const [index, [imageA, imageB]] of aperture(2, files).entries()) {
-				const rembrandt = new Rembrandt({
-					imageA: path.resolve(itemPath, imageA),
-					imageB: path.resolve(itemPath, imageB),
-					thresholdType: Rembrandt.THRESHOLD_PERCENT,
-					maxThreshold: 0.05,
-					maxDelta: 20 / 255,
-					maxOffset: 2,
-					renderComposition: false,
-				});
+			if (eliminate) {
+				for (const [index, [imageA, imageB]] of aperture(2, files).entries()) {
+					const rembrandt = new Rembrandt({
+						imageA: path.resolve(itemPath, imageA),
+						imageB: path.resolve(itemPath, imageB),
+						thresholdType: Rembrandt.THRESHOLD_PERCENT,
+						maxThreshold: 0.05,
+						maxDelta: 20 / 255,
+						maxOffset: 2,
+						renderComposition: false,
+					});
 
-				const result = await rembrandt.compare();
-				if (result.passed) {
-					blacklist.add(imageA);
-					blacklist.add(imageB);
-				}
+					const result = await rembrandt.compare();
+					if (result.passed) {
+						blacklist.add(imageA);
+						blacklist.add(imageB);
+					}
 
-				if (index % 100 === 0) {
-					console.log(`Elimination in progress... (${index}/${files.length})`);
+					if (index % 100 === 0) {
+						console.log(`Elimination in progress... (${index}/${files.length})`);
+					}
 				}
 			}
 
-			await fs.mkdirp(path.resolve('webp', liveId));
+			await fs.mkdirp(path.resolve('webp', type, id));
 
 			for (const [index, file] of files.entries()) {
 				if (blacklist.has(file)) {
@@ -88,7 +93,7 @@ const generateThumbs = (liveId) => {
 					await exec('cwebp', [
 						'-q', '50',
 						path.resolve(itemPath, file),
-						'-o', path.resolve('webp', liveId, `${(offset + index).toString().padStart(4, '0')}.webp`),
+						'-o', path.resolve('webp', type, id, `${(offset + index).toString().padStart(4, '0')}.webp`),
 					]);
 				});
 			}
@@ -98,20 +103,25 @@ const generateThumbs = (liveId) => {
 			offset += files.length;
 		}
 
-		webps.push(liveId);
+		webps.push(videoPath);
 		await fs.writeJson('webps.json', webps);
 	});
 };
 
 module.exports = async () => {
-	const dirs = await fs.readdir('raw-thumbs');
+	const dirs = await fs.readdir('raw-thumbs/lives');
 
 	const lives = groupBy((dir) => {
 		const [live] = dir.split('-');
 		return live;
 	}, dirs.filter((dir) => dir.startsWith('lv')).sort());
 	for (const liveId of Object.keys(lives)) {
-		generateThumbs(liveId);
+		generateThumbs(`lives/${liveId}`);
+	}
+
+	const youtubes = await fs.readdir('raw-thumbs/youtube');
+	for (const videoId of youtubes) {
+		generateThumbs(`youtube/${videoId}`, false);
 	}
 };
 
