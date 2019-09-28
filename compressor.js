@@ -54,7 +54,7 @@ const generateThumbs = (videoPath, eliminate = true) => {
 
 		for (const dir of liveDirs) {
 			const blacklist = new Set();
-			const itemPath = path.resolve('raw-thumbs/lives', dir);
+			const itemPath = path.resolve(`raw-thumbs/${type}`, dir);
 			const files = await fs.readdir(itemPath);
 			files.sort();
 
