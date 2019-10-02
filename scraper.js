@@ -70,5 +70,36 @@ const {get} = require('lodash');
 		}
 	}
 
+	{
+		const videos = await fs.readJSON('uploaded.json');
+		const infos = await fs.readJSON('niconico.json');
+
+		for (const video of videos) {
+			const [, videoId] = video.split('/');
+			if (proceeded.has(videoId)) {
+				continue;
+			}
+			let count = '';
+			if (await fs.pathExists(`raw-thumbs/niconico/${videoId}`)) {
+				count = (await fs.readdir(`raw-thumbs/niconico/${videoId}`)).length.toString();
+			}
+			const info = infos.find((i) => i.videoId === videoId);
+			if (!info) {
+				continue;
+			}
+			const components = info.path.split('\\');
+			const dirname = components[components.length - 2].replace(/_/g, ' ').trim();
+			const filename = components[components.length - 1].replace(/-[^-]+$/, '').replace(/_/g, ' ').trim();
+
+			writer.write([
+				'niconico',
+				videoId,
+				filename,
+				dirname,
+				count,
+			].join('\t') + '\n');
+		}
+	}
+
 	writer.end();
 })();

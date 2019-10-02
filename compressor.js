@@ -8,18 +8,19 @@ const concatStream = require('concat-stream');
 
 const queue = new Queue({concurrency: 1});
 const webpQueue = new Queue({concurrency: 5});
+const uploadQueue = new Queue({concurrency: 1});
 
-const exec = async (command, args) => {
+const exec = async (command, args, quiet = false) => {
 	console.log(`$ ${command} ${args.join(' ')}`);
 
 	const proc = spawn(command, args);
 
-	const [stdout] = await Promise.all([
-		new Promise((resolve) => {
-			proc.stdout.pipe(concatStream({encoding: 'buffer'}, (data) => {
-				resolve(data);
-			}));
-		}),
+	if (!quiet) {
+		proc.stdout.pipe(process.stdout);
+		proc.stderr.pipe(process.stderr);
+	}
+
+	await Promise.all([
 		new Promise((resolve, reject) => {
 			proc.on('close', (code) => {
 				if (code === 0) {
@@ -31,8 +32,32 @@ const exec = async (command, args) => {
 			});
 		}),
 	]);
+};
 
-	return stdout;
+const upload = (videoPath) => {
+	if (!videoPath.startsWith('niconico')) {
+		return;
+	}
+
+	uploadQueue.add(async () => {
+		const uploaded = await fs.readJson('uploaded.json').catch(() => []);
+		if (uploaded.includes(videoPath)) {
+			console.log(`Skipping upload of ${videoPath}...`);
+			return;
+		}
+
+		console.log(`Uploading ${videoPath}...`);
+		await exec('aws', [
+			's3', 'sync',
+			`webp/${videoPath}`,
+			`s3://hakata-thumbs/${videoPath}`,
+			'--acl', 'public-read',
+			'--content-type', 'image/webp',
+		]);
+
+		uploaded.push(videoPath);
+		await fs.writeJson('uploaded.json', uploaded);
+	});
 };
 
 const generateThumbs = (videoPath, eliminate = true) => {
@@ -41,6 +66,7 @@ const generateThumbs = (videoPath, eliminate = true) => {
 		
 		const [type, id] = videoPath.split('/');
 		if (webps.includes(videoPath)) {
+			upload(videoPath);
 			console.log(`Skipping ${videoPath}...`);
 			return;
 		}
@@ -94,7 +120,7 @@ const generateThumbs = (videoPath, eliminate = true) => {
 						'-q', '50',
 						path.resolve(itemPath, file),
 						'-o', path.resolve('webp', type, id, `${(offset + index).toString().padStart(4, '0')}.webp`),
-					]);
+					], true);
 				});
 			}
 
@@ -105,11 +131,13 @@ const generateThumbs = (videoPath, eliminate = true) => {
 
 		webps.push(videoPath);
 		await fs.writeJson('webps.json', webps);
+
+		upload(videoPath);
 	});
 };
 
 module.exports = async () => {
-	const dirs = await fs.readdir('raw-thumbs/lives');
+	const dirs = await fs.readdir('raw-thumbs/lives').catch(() => []);
 
 	const lives = groupBy((dir) => {
 		const [live] = dir.split('-');
@@ -119,9 +147,14 @@ module.exports = async () => {
 		generateThumbs(`lives/${liveId}`);
 	}
 
-	const youtubes = await fs.readdir('raw-thumbs/youtube');
+	const youtubes = await fs.readdir('raw-thumbs/youtube').catch(() => []);
 	for (const videoId of youtubes) {
 		generateThumbs(`youtube/${videoId}`, false);
+	}
+
+	const niconicos = await fs.readdir('raw-thumbs/niconico').catch(() => []);
+	for (const videoId of niconicos) {
+		generateThumbs(`niconico/${videoId}`, false);
 	}
 };
 
