@@ -10,7 +10,7 @@ const {get} = require('lodash');
 	const writer = fs.createWriteStream('lives.tsv', {flags: 'a'});
 
 	{
-		const dirs = await fs.readdir('raw-thumbs/lives');
+		const dirs = await fs.readdir('raw-thumbs/lives').catch(() => []);
 		const lives = new Set(dirs.map((dir) => dir.split('-')[0]));
 
 		for (const liveId of lives) {
@@ -42,7 +42,7 @@ const {get} = require('lodash');
 	}
 
 	{
-		const videos = await fs.readdir('raw-thumbs/youtube');
+		const videos = await fs.readdir('raw-thumbs/youtube').catch(() => []);
 
 		for (const videoId of videos) {
 			if (proceeded.has(videoId)) {
@@ -75,8 +75,8 @@ const {get} = require('lodash');
 		const infos = await fs.readJSON('niconico.json');
 
 		for (const video of videos) {
-			const [, videoId] = video.split('/');
-			if (proceeded.has(videoId)) {
+			const [type, videoId] = video.split('/');
+			if (type !== 'niconico' || proceeded.has(videoId)) {
 				continue;
 			}
 			let count = '';
@@ -98,6 +98,7 @@ const {get} = require('lodash');
 				dirname,
 				count,
 			].join('\t') + '\n');
+			proceeded.add(videoId);
 		}
 	}
 

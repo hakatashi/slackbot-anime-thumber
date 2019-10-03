@@ -24,7 +24,7 @@ const {last} = require('lodash');
 			}
 
 			const videos = await fs.readdir(`raw-thumbs/niconico/${videoId}`).catch(() => []);
-			if (videos.length >= 10 || uploaded.some((path) => path === `niconico/${videoId}`)) {
+			if (videos.length >= 3 || uploaded.some((path) => path === `niconico/${videoId}`)) {
 				files.push({videoId, ext, path: item.path});
 				await fs.writeJson('niconico.json', files);
 				return;

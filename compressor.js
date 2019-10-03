@@ -153,7 +153,7 @@ module.exports = async () => {
 	}
 
 	const niconicos = await fs.readdir('raw-thumbs/niconico').catch(() => []);
-	for (const videoId of niconicos) {
+	for (const videoId of niconicos.reverse()) {
 		generateThumbs(`niconico/${videoId}`, false);
 	}
 };
