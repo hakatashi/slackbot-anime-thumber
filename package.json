@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/hakatashi/slackbot-anime-thumber#readme",
   "dependencies": {
-    "aws-sdk": "^2.973.0",
+    "aws-sdk": "^2.974.0",
     "axios": "^0.21.3",
     "concat-stream": "^2.0.0",
     "fs-extra": "^8.1.0",
